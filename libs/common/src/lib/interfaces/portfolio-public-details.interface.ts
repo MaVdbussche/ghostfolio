@@ -6,7 +6,7 @@ export interface PortfolioPublicDetails {
   holdings: {
     [symbol: string]: Pick<
       PortfolioPosition,
-      | 'allocationCurrent'
+      | 'allocationInPercentage'
       | 'countries'
       | 'currency'
       | 'dataSource'
@@ -18,6 +18,7 @@ export interface PortfolioPublicDetails {
       | 'symbol'
       | 'url'
       | 'value'
+      | 'valueInPercentage'
     >;
   };
 }

@@ -11,7 +11,7 @@ import { IcsService } from '@ghostfolio/client/services/ics/ics.service';
 import { ImpersonationStorageService } from '@ghostfolio/client/services/impersonation-storage.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { downloadAsFile } from '@ghostfolio/common/helper';
-import { UniqueAsset, User } from '@ghostfolio/common/interfaces';
+import { User } from '@ghostfolio/common/interfaces';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { DataSource, Order as OrderModel } from '@prisma/client';
 import { format, parseISO } from 'date-fns';
@@ -36,7 +36,6 @@ export class ActivitiesPageComponent implements OnDestroy, OnInit {
   public hasImpersonationId: boolean;
   public hasPermissionToCreateActivity: boolean;
   public hasPermissionToDeleteActivity: boolean;
-  public hasPermissionToImportActivities: boolean;
   public routeQueryParams: Subscription;
   public user: User;
 
@@ -89,12 +88,8 @@ export class ActivitiesPageComponent implements OnDestroy, OnInit {
     this.impersonationStorageService
       .onChangeHasImpersonation()
       .pipe(takeUntil(this.unsubscribeSubject))
-      .subscribe((aId) => {
-        this.hasImpersonationId = !!aId;
-
-        this.hasPermissionToImportActivities =
-          hasPermission(globalPermissions, permissions.enableImport) &&
-          !this.hasImpersonationId;
+      .subscribe((impersonationId) => {
+        this.hasImpersonationId = !!impersonationId;
       });
 
     this.userService.stateChanged
@@ -141,6 +136,23 @@ export class ActivitiesPageComponent implements OnDestroy, OnInit {
           this.fetchActivities();
         }
       });
+  }
+
+  public onDeleteAllActivities() {
+    const confirmation = confirm(
+      $localize`Do you really want to delete all your activities?`
+    );
+
+    if (confirmation) {
+      this.dataService
+        .deleteAllOrders()
+        .pipe(takeUntil(this.unsubscribeSubject))
+        .subscribe({
+          next: () => {
+            this.fetchActivities();
+          }
+        });
+    }
   }
 
   public onExport(activityIds?: string[]) {
@@ -356,13 +368,11 @@ export class ActivitiesPageComponent implements OnDestroy, OnInit {
       return account.isDefault;
     })?.id;
 
-    this.hasPermissionToCreateActivity = hasPermission(
-      this.user.permissions,
-      permissions.createOrder
-    );
-    this.hasPermissionToDeleteActivity = hasPermission(
-      this.user.permissions,
-      permissions.deleteOrder
-    );
+    this.hasPermissionToCreateActivity =
+      !this.hasImpersonationId &&
+      hasPermission(this.user.permissions, permissions.createOrder);
+    this.hasPermissionToDeleteActivity =
+      !this.hasImpersonationId &&
+      hasPermission(this.user.permissions, permissions.deleteOrder);
   }
 }

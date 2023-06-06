@@ -40,7 +40,7 @@ Ghostfolio is for you if you are...
 - 🧘 into minimalism
 - 🧺 caring about diversifying your financial resources
 - 🆓 interested in financial independence
-- 🙅 saying no to spreadsheets in 2023
+- 🙅 saying no to spreadsheets
 - 😎 still reading this list
 
 ## Features
@@ -75,7 +75,7 @@ The frontend is built with [Angular](https://angular.io) and uses [Angular Mater
 
 ## Self-hosting
 
-We provide official container images hosted on [Docker Hub](https://hub.docker.com/r/ghostfolio/ghostfolio) for `linux/amd64` and `linux/arm64`.
+We provide official container images hosted on [Docker Hub](https://hub.docker.com/r/ghostfolio/ghostfolio) for `linux/amd64`, `linux/arm/v7` and `linux/arm64`.
 
 <div align="center">
 
@@ -85,20 +85,19 @@ We provide official container images hosted on [Docker Hub](https://hub.docker.c
 
 ### Supported Environment Variables
 
-| Name                | Default Value | Description                                                                                                                                                                                                                                      |
-| ------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ACCESS_TOKEN_SALT` |               | A random string used as salt for access tokens                                                                                                                                                                                                   |
-| `BASE_CURRENCY`     | `USD`         | The base currency of the Ghostfolio application.<br />`AUD` \| `CAD` \| `CNY` \| `EUR` \| `GBP` \| `JPY` \| `RUB` \| `USD`<br />Caution: Only set if you intend to track cryptocurrencies in a non-`USD` currency. This cannot be changed later! |
-| `DATABASE_URL`      |               | The database connection URL, e.g. `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}?sslmode=prefer`                                                                                                              |
-| `HOST`              | `0.0.0.0`     | The host where the Ghostfolio application will run on                                                                                                                                                                                            |
-| `JWT_SECRET_KEY`    |               | A random string used for _JSON Web Tokens_ (JWT)                                                                                                                                                                                                 |
-| `PORT`              | `3333`        | The port where the Ghostfolio application will run on                                                                                                                                                                                            |
-| `POSTGRES_DB`       |               | The name of the _PostgreSQL_ database                                                                                                                                                                                                            |
-| `POSTGRES_PASSWORD` |               | The password of the _PostgreSQL_ database                                                                                                                                                                                                        |
-| `POSTGRES_USER`     |               | The user of the _PostgreSQL_ database                                                                                                                                                                                                            |
-| `REDIS_HOST`        |               | The host where _Redis_ is running                                                                                                                                                                                                                |
-| `REDIS_PASSWORD`    |               | The password of _Redis_                                                                                                                                                                                                                          |
-| `REDIS_PORT`        |               | The port where _Redis_ is running                                                                                                                                                                                                                |
+| Name                | Default Value | Description                                                                                                                         |
+| ------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `ACCESS_TOKEN_SALT` |               | A random string used as salt for access tokens                                                                                      |
+| `DATABASE_URL`      |               | The database connection URL, e.g. `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}?sslmode=prefer` |
+| `HOST`              | `0.0.0.0`     | The host where the Ghostfolio application will run on                                                                               |
+| `JWT_SECRET_KEY`    |               | A random string used for _JSON Web Tokens_ (JWT)                                                                                    |
+| `PORT`              | `3333`        | The port where the Ghostfolio application will run on                                                                               |
+| `POSTGRES_DB`       |               | The name of the _PostgreSQL_ database                                                                                               |
+| `POSTGRES_PASSWORD` |               | The password of the _PostgreSQL_ database                                                                                           |
+| `POSTGRES_USER`     |               | The user of the _PostgreSQL_ database                                                                                               |
+| `REDIS_HOST`        |               | The host where _Redis_ is running                                                                                                   |
+| `REDIS_PASSWORD`    |               | The password of _Redis_                                                                                                             |
+| `REDIS_PORT`        |               | The port where _Redis_ is running                                                                                                   |
 
 ### Run with Docker Compose
 
@@ -106,7 +105,8 @@ We provide official container images hosted on [Docker Hub](https://hub.docker.c
 
 - Basic knowledge of Docker
 - Installation of [Docker](https://www.docker.com/products/docker-desktop)
-- Local copy of this Git repository (clone)
+- Create a local copy of this Git repository (clone)
+- Copy the file `.env.example` to `.env` and populate it with your data (`cp .env.example .env`)
 
 #### a. Run environment
 
@@ -125,13 +125,10 @@ docker-compose --env-file ./.env -f docker/docker-compose.build.yml build
 docker-compose --env-file ./.env -f docker/docker-compose.build.yml up -d
 ```
 
-#### Fetch Historical Data
+#### Setup
 
-Open http://localhost:3333 in your browser and accomplish these steps:
-
+1. Open http://localhost:3333 in your browser
 1. Create a new user via _Get Started_ (this first user will get the role `ADMIN`)
-1. Go to the _Market Data_ tab in the _Admin Control Panel_ and click _Gather All Data_ to fetch historical data
-1. Click _Sign out_ and check out the _Live Demo_
 
 #### Upgrade Version
 
@@ -148,20 +145,20 @@ Please follow the instructions of the Ghostfolio [Unraid Community App](https://
 ### Prerequisites
 
 - [Docker](https://www.docker.com/products/docker-desktop)
-- [Node.js](https://nodejs.org/en/download) (version 16+)
+- [Node.js](https://nodejs.org/en/download) (version 16)
 - [Yarn](https://yarnpkg.com/en/docs/install)
-- A local copy of this Git repository (clone)
+- Create a local copy of this Git repository (clone)
+- Copy the file `.env.example` to `.env` and populate it with your data (`cp .env.example .env`)
 
 ### Setup
 
 1. Run `yarn install`
 1. Run `yarn build:dev` to build the source code including the assets
 1. Run `docker-compose --env-file ./.env -f docker/docker-compose.dev.yml up -d` to start [PostgreSQL](https://www.postgresql.org) and [Redis](https://redis.io)
-1. Run `yarn database:setup` to initialize the database schema and populate your database with (example) data
+1. Run `yarn database:setup` to initialize the database schema
 1. Start the server and the client (see [_Development_](#Development))
+1. Open http://localhost:4200/en in your browser
 1. Create a new user via _Get Started_ (this first user will get the role `ADMIN`)
-1. Go to the _Market Data_ tab in the _Admin Control Panel_ and click _Gather All Data_ to fetch historical data
-1. Click _Sign out_ and check out the _Live Demo_
 
 ### Start Server
 
@@ -175,7 +172,7 @@ Run `yarn start:server`
 
 ### Start Client
 
-Run `yarn start:client`
+Run `yarn start:client` and open http://localhost:4200/en in your browser
 
 ### Start _Storybook_
 
@@ -203,7 +200,9 @@ Set the header for each request as follows:
 "Authorization": "Bearer eyJh..."
 ```
 
-You can get the _Bearer Token_ via `GET http://localhost:3333/api/v1/auth/anonymous/<INSERT_SECURITY_TOKEN_OF_ACCOUNT>` or `curl -s http://localhost:3333/api/v1/auth/anonymous/<INSERT_SECURITY_TOKEN_OF_ACCOUNT>`.
+You can get the _Bearer Token_ via `POST http://localhost:3333/api/v1/auth/anonymous` (Body: `{ accessToken: <INSERT_SECURITY_TOKEN_OF_ACCOUNT> }`)
+
+Deprecated: `GET http://localhost:3333/api/v1/auth/anonymous/<INSERT_SECURITY_TOKEN_OF_ACCOUNT>` or `curl -s http://localhost:3333/api/v1/auth/anonymous/<INSERT_SECURITY_TOKEN_OF_ACCOUNT>`.
 
 ### Import Activities
 
@@ -233,6 +232,7 @@ You can get the _Bearer Token_ via `GET http://localhost:3333/api/v1/auth/anonym
 | Field      | Type                | Description                                        |
 | ---------- | ------------------- | -------------------------------------------------- |
 | accountId  | string (`optional`) | Id of the account                                  |
+| comment    | string (`optional`) | Comment of the activity                            |
 | currency   | string              | `CHF` \| `EUR` \| `USD` etc.                       |
 | dataSource | string              | `MANUAL` (for type `ITEM`) \| `YAHOO`              |
 | date       | string              | Date in the format `ISO-8601`                      |
@@ -269,12 +269,12 @@ You can get the _Bearer Token_ via `GET http://localhost:3333/api/v1/auth/anonym
 
 Ghostfolio is **100% free** and **open source**. We encourage and support an active and healthy community that accepts contributions from the public - including you.
 
-Not sure what to work on? We have got some ideas. Please join the Ghostfolio [Slack channel](https://join.slack.com/t/ghostfolio/shared_invite/zt-vsaan64h-F_I0fEo5M0P88lP9ibCxFg), tweet to [@ghostfolio\_](https://twitter.com/ghostfolio_) or send an e-mail to hi@ghostfol.io. We would love to hear from you.
+Not sure what to work on? We have got some ideas. Please join the Ghostfolio [Slack](https://join.slack.com/t/ghostfolio/shared_invite/zt-vsaan64h-F_I0fEo5M0P88lP9ibCxFg) channel or tweet to [@ghostfolio\_](https://twitter.com/ghostfolio_). We would love to hear from you.
 
 If you like to support this project, get [**Ghostfolio Premium**](https://ghostfol.io/en/pricing) or [**Buy me a coffee**](https://www.buymeacoffee.com/ghostfolio).
 
 ## License
 
-© 2023 [Ghostfolio](https://ghostfol.io)
+© 2021 - 2023 [Ghostfolio](https://ghostfol.io)
 
 Licensed under the [AGPLv3 License](https://www.gnu.org/licenses/agpl-3.0.html).

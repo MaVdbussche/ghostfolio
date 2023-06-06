@@ -1,15 +1,15 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
-import { MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { MatCheckboxChange } from '@angular/material/checkbox';
 import { CacheService } from '@ghostfolio/client/services/cache.service';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import {
-  ghostfolioPrefix,
   PROPERTY_COUPONS,
   PROPERTY_CURRENCIES,
   PROPERTY_IS_READ_ONLY_MODE,
   PROPERTY_IS_USER_SIGNUP_ENABLED,
-  PROPERTY_SYSTEM_MESSAGE
+  PROPERTY_SYSTEM_MESSAGE,
+  ghostfolioPrefix
 } from '@ghostfolio/common/config';
 import { Coupon, InfoItem, User } from '@ghostfolio/common/interfaces';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
@@ -29,7 +29,7 @@ import { takeUntil } from 'rxjs/operators';
   templateUrl: './admin-overview.html'
 })
 export class AdminOverviewComponent implements OnDestroy, OnInit {
-  public couponDuration: StringValue = '30 days';
+  public couponDuration: StringValue = '14 days';
   public coupons: Coupon[];
   public customCurrencies: string[];
   public exchangeRates: { label1: string; label2: string; value: number }[];
@@ -166,14 +166,14 @@ export class AdminOverviewComponent implements OnDestroy, OnInit {
     }
   }
 
-  public onReadOnlyModeChange(aEvent: MatSlideToggleChange) {
+  public onReadOnlyModeChange(aEvent: MatCheckboxChange) {
     this.putAdminSetting({
       key: PROPERTY_IS_READ_ONLY_MODE,
       value: aEvent.checked ? true : undefined
     });
   }
 
-  public onEnableUserSignupModeChange(aEvent: MatSlideToggleChange) {
+  public onEnableUserSignupModeChange(aEvent: MatCheckboxChange) {
     this.putAdminSetting({
       key: PROPERTY_IS_USER_SIGNUP_ENABLED,
       value: aEvent.checked ? undefined : false

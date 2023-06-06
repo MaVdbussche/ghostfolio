@@ -10,6 +10,7 @@ import { UserService } from '@ghostfolio/client/services/user/user.service';
 import {
   Filter,
   HistoricalDataItem,
+  PortfolioInvestments,
   Position,
   User
 } from '@ghostfolio/common/interfaces';
@@ -19,7 +20,7 @@ import { DateRange, GroupBy, ToggleOption } from '@ghostfolio/common/types';
 import { translate } from '@ghostfolio/ui/i18n';
 import { AssetClass, DataSource, SymbolProfile } from '@prisma/client';
 import { differenceInDays } from 'date-fns';
-import { sortBy } from 'lodash';
+import { isNumber, sortBy } from 'lodash';
 import { DeviceDetectorService } from 'ngx-device-detector';
 import { Subject } from 'rxjs';
 import { distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
@@ -58,7 +59,10 @@ export class AnalysisPageComponent implements OnDestroy, OnInit {
   public performanceDataItemsInPercentage: HistoricalDataItem[];
   public placeholder = '';
   public portfolioEvolutionDataLabel = $localize`Deposit`;
+  public streaks: PortfolioInvestments['streaks'];
   public top3: Position[];
+  public unitCurrentStreak: string;
+  public unitLongestStreak: string;
   public user: User;
 
   private unsubscribeSubject = new Subject<void>();
@@ -109,8 +113,8 @@ export class AnalysisPageComponent implements OnDestroy, OnInit {
     this.impersonationStorageService
       .onChangeHasImpersonation()
       .pipe(takeUntil(this.unsubscribeSubject))
-      .subscribe((aId) => {
-        this.hasImpersonationId = !!aId;
+      .subscribe((impersonationId) => {
+        this.hasImpersonationId = !!impersonationId;
       });
 
     this.filters$
@@ -159,7 +163,7 @@ export class AnalysisPageComponent implements OnDestroy, OnInit {
           const tagFilters: Filter[] = this.user.tags.map(({ id, name }) => {
             return {
               id,
-              label: name,
+              label: translate(name),
               type: 'TAG'
             };
           });
@@ -242,8 +246,25 @@ export class AnalysisPageComponent implements OnDestroy, OnInit {
         range: this.user?.settings?.dateRange
       })
       .pipe(takeUntil(this.unsubscribeSubject))
-      .subscribe(({ investments }) => {
+      .subscribe(({ investments, streaks }) => {
         this.investmentsByGroup = investments;
+        this.streaks = streaks;
+        this.unitCurrentStreak =
+          this.mode === 'year'
+            ? this.streaks.currentStreak === 1
+              ? translate('YEAR')
+              : translate('YEARS')
+            : this.streaks.currentStreak === 1
+            ? translate('MONTH')
+            : translate('MONTHS');
+        this.unitLongestStreak =
+          this.mode === 'year'
+            ? this.streaks.longestStreak === 1
+              ? translate('YEAR')
+              : translate('YEARS')
+            : this.streaks.longestStreak === 1
+            ? translate('MONTH')
+            : translate('MONTHS');
 
         this.changeDetectorRef.markForCheck();
       });
@@ -308,17 +329,24 @@ export class AnalysisPageComponent implements OnDestroy, OnInit {
         this.performanceDataItems = [];
         this.performanceDataItemsInPercentage = [];
 
-        for (const {
-          date,
-          netPerformanceInPercentage,
-          totalInvestment,
-          value
-        } of chart) {
-          this.investments.push({ date, investment: totalInvestment });
-          this.performanceDataItems.push({
+        for (const [
+          index,
+          {
             date,
-            value
-          });
+            netPerformanceInPercentage,
+            totalInvestment,
+            value,
+            valueInPercentage
+          }
+        ] of chart.entries()) {
+          if (index > 0 || this.user?.settings?.dateRange === 'max') {
+            // Ignore first item where value is 0
+            this.investments.push({ date, investment: totalInvestment });
+            this.performanceDataItems.push({
+              date,
+              value: isNumber(value) ? value : valueInPercentage
+            });
+          }
           this.performanceDataItemsInPercentage.push({
             date,
             value: netPerformanceInPercentage

@@ -1,7 +1,8 @@
 import { TransformDataSourceInRequestInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-request.interceptor';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response.interceptor';
-import { ConfigurationService } from '@ghostfolio/api/services/configuration.service';
+import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { ImportResponse } from '@ghostfolio/common/interfaces';
+import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import type { RequestWithUser } from '@ghostfolio/common/types';
 import {
   Body,
@@ -20,7 +21,6 @@ import { REQUEST } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { DataSource } from '@prisma/client';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
-import { isEmpty } from 'lodash';
 
 import { ImportDataDto } from './import-data.dto';
 import { ImportService } from './import.service';
@@ -35,11 +35,19 @@ export class ImportController {
 
   @Post()
   @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(TransformDataSourceInRequestInterceptor)
+  @UseInterceptors(TransformDataSourceInResponseInterceptor)
   public async import(
     @Body() importData: ImportDataDto,
     @Query('dryRun') isDryRun?: boolean
   ): Promise<ImportResponse> {
-    if (!this.configurationService.get('ENABLE_FEATURE_IMPORT')) {
+    if (
+      !hasPermission(
+        this.request.user.permissions,
+        permissions.createAccount
+      ) ||
+      !hasPermission(this.request.user.permissions, permissions.createOrder)
+    ) {
       throw new HttpException(
         getReasonPhrase(StatusCodes.FORBIDDEN),
         StatusCodes.FORBIDDEN
@@ -61,9 +69,10 @@ export class ImportController {
 
     try {
       const activities = await this.importService.import({
-        maxActivitiesToImport,
         isDryRun,
+        maxActivitiesToImport,
         userCurrency,
+        accountsDto: importData.accounts ?? [],
         activitiesDto: importData.activities,
         userId: this.request.user.id
       });

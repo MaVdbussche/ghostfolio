@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { CreateAccountDto } from '@ghostfolio/api/app/account/create-account.dto';
 import { CreateOrderDto } from '@ghostfolio/api/app/order/create-order.dto';
 import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 import { Account, DataSource, Type } from '@prisma/client';
@@ -14,14 +15,19 @@ import { catchError } from 'rxjs/operators';
 })
 export class ImportActivitiesService {
   private static ACCOUNT_KEYS = ['account', 'accountid'];
-  private static CURRENCY_KEYS = ['ccy', 'currency'];
+  private static CURRENCY_KEYS = ['ccy', 'currency', 'currencyprimary'];
   private static DATA_SOURCE_KEYS = ['datasource'];
-  private static DATE_KEYS = ['date'];
-  private static FEE_KEYS = ['commission', 'fee'];
+  private static DATE_KEYS = ['date', 'tradedate'];
+  private static FEE_KEYS = ['commission', 'fee', 'ibcommission'];
   private static QUANTITY_KEYS = ['qty', 'quantity', 'shares', 'units'];
   private static SYMBOL_KEYS = ['code', 'symbol', 'ticker'];
-  private static TYPE_KEYS = ['action', 'type'];
-  private static UNIT_PRICE_KEYS = ['price', 'unitprice', 'value'];
+  private static TYPE_KEYS = ['action', 'buy/sell', 'type'];
+  private static UNIT_PRICE_KEYS = [
+    'price',
+    'tradeprice',
+    'unitprice',
+    'value'
+  ];
 
   public constructor(private http: HttpClient) {}
 
@@ -33,7 +39,9 @@ export class ImportActivitiesService {
     fileContent: string;
     isDryRun?: boolean;
     userAccounts: Account[];
-  }): Promise<Activity[]> {
+  }): Promise<{
+    activities: Activity[];
+  }> {
     const content = csvToJson(fileContent, {
       dynamicTyping: true,
       header: true,
@@ -51,24 +59,31 @@ export class ImportActivitiesService {
         quantity: this.parseQuantity({ content, index, item }),
         symbol: this.parseSymbol({ content, index, item }),
         type: this.parseType({ content, index, item }),
-        unitPrice: this.parseUnitPrice({ content, index, item })
+        unitPrice: this.parseUnitPrice({ content, index, item }),
+        updateAccountBalance: false
       });
     }
 
-    return await this.importJson({ isDryRun, content: activities });
+    return await this.importJson({ activities, isDryRun });
   }
 
   public importJson({
-    content,
+    accounts,
+    activities,
     isDryRun = false
   }: {
-    content: CreateOrderDto[];
+    activities: CreateOrderDto[];
+    accounts?: CreateAccountDto[];
     isDryRun?: boolean;
-  }): Promise<Activity[]> {
+  }): Promise<{
+    activities: Activity[];
+    accounts?: CreateAccountDto[];
+  }> {
     return new Promise((resolve, reject) => {
       this.postImport(
         {
-          activities: content
+          accounts,
+          activities
         },
         isDryRun
       )
@@ -80,22 +95,29 @@ export class ImportActivitiesService {
         )
         .subscribe({
           next: (data) => {
-            resolve(data.activities);
+            resolve(data);
           }
         });
     });
   }
 
-  public importSelectedActivities(
-    selectedActivities: Activity[]
-  ): Promise<Activity[]> {
+  public importSelectedActivities({
+    accounts,
+    activities
+  }: {
+    accounts: CreateAccountDto[];
+    activities: Activity[];
+  }): Promise<{
+    activities: Activity[];
+    accounts?: CreateAccountDto[];
+  }> {
     const importData: CreateOrderDto[] = [];
 
-    for (const activity of selectedActivities) {
+    for (const activity of activities) {
       importData.push(this.convertToCreateOrderDto(activity));
     }
 
-    return this.importJson({ content: importData });
+    return this.importJson({ accounts, activities: importData });
   }
 
   private convertToCreateOrderDto({
@@ -105,7 +127,8 @@ export class ImportActivitiesService {
     quantity,
     SymbolProfile,
     type,
-    unitPrice
+    unitPrice,
+    updateAccountBalance
   }: Activity): CreateOrderDto {
     return {
       accountId,
@@ -113,7 +136,9 @@ export class ImportActivitiesService {
       quantity,
       type,
       unitPrice,
+      updateAccountBalance,
       currency: SymbolProfile.currency,
+      dataSource: SymbolProfile.dataSource,
       date: date.toString(),
       symbol: SymbolProfile.symbol
     };
@@ -198,10 +223,18 @@ export class ImportActivitiesService {
 
     for (const key of ImportActivitiesService.DATE_KEYS) {
       if (item[key]) {
-        if (isMatch(item[key], 'dd-MM-yyyy')) {
+        if (isMatch(item[key], 'dd-MM-yyyy') && item[key].length === '10') {
+          // Check length to only match yyyy (and not yy)
           date = parse(item[key], 'dd-MM-yyyy', new Date()).toISOString();
-        } else if (isMatch(item[key], 'dd/MM/yyyy')) {
+        } else if (
+          isMatch(item[key], 'dd/MM/yyyy') &&
+          item[key].length === '10'
+        ) {
+          // Check length to only match yyyy (and not yy)
           date = parse(item[key], 'dd/MM/yyyy', new Date()).toISOString();
+        } else if (isMatch(item[key], 'yyyyMMdd') && item[key].length === '8') {
+          // Check length to only match yyyy (and not yy)
+          date = parse(item[key], 'yyyyMMdd', new Date()).toISOString();
         } else {
           try {
             date = parseISO(item[key]).toISOString();
@@ -233,7 +266,7 @@ export class ImportActivitiesService {
 
     for (const key of ImportActivitiesService.FEE_KEYS) {
       if (isFinite(item[key])) {
-        return item[key];
+        return Math.abs(item[key]);
       }
     }
 
@@ -347,7 +380,7 @@ export class ImportActivitiesService {
   }
 
   private postImport(
-    aImportData: { activities: CreateOrderDto[] },
+    aImportData: { accounts: CreateAccountDto[]; activities: CreateOrderDto[] },
     aIsDryRun = false
   ) {
     return this.http.post<{ activities: Activity[] }>(

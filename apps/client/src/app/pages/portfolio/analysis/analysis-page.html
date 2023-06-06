@@ -34,7 +34,7 @@
 
   <div class="mb-5 row">
     <div class="col-md-6">
-      <mat-card class="mb-3">
+      <mat-card appearance="outlined" class="mb-3">
         <mat-card-header>
           <mat-card-title class="align-items-center d-flex" i18n
             >Top</mat-card-title
@@ -80,7 +80,7 @@
       </mat-card>
     </div>
     <div class="col-md-6">
-      <mat-card class="mb-3">
+      <mat-card appearance="outlined" class="mb-3">
         <mat-card-header>
           <mat-card-title class="align-items-center d-flex" i18n
             >Bottom</mat-card-title
@@ -176,6 +176,26 @@
           [options]="modeOptions"
           (change)="onChangeGroupBy($event.value)"
         ></gf-toggle>
+      </div>
+      <div *ngIf="streaks" class="row">
+        <div class="col-md-6 col-xs-12 my-2">
+          <gf-value
+            i18n
+            size="large"
+            [unit]="unitCurrentStreak"
+            [value]="streaks?.currentStreak"
+            >Current Streak</gf-value
+          >
+        </div>
+        <div class="col-md-6 col-xs-12 my-2">
+          <gf-value
+            i18n
+            size="large"
+            [unit]="unitLongestStreak"
+            [value]="streaks?.longestStreak"
+            >Longest Streak</gf-value
+          >
+        </div>
       </div>
       <div class="chart-container">
         <gf-investment-chart

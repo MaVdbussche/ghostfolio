@@ -1,4 +1,5 @@
-import { cloneDeep, isObject } from 'lodash';
+import Big from 'big.js';
+import { cloneDeep, isArray, isObject } from 'lodash';
 
 export function hasNotDefinedValuesInObject(aObject: Object): boolean {
   for (const key in aObject) {
@@ -43,15 +44,26 @@ export function redactAttributes({
 
   for (const option of options) {
     if (redactedObject.hasOwnProperty(option.attribute)) {
-      redactedObject[option.attribute] =
-        option.valueMap[redactedObject[option.attribute]] ??
-        option.valueMap['*'] ??
-        redactedObject[option.attribute];
+      if (option.valueMap['*'] || option.valueMap['*'] === null) {
+        redactedObject[option.attribute] = option.valueMap['*'];
+      } else if (option.valueMap[redactedObject[option.attribute]]) {
+        redactedObject[option.attribute] =
+          option.valueMap[redactedObject[option.attribute]];
+      }
     } else {
       // If the attribute is not present on the current object,
       // check if it exists on any nested objects
       for (const property in redactedObject) {
-        if (typeof redactedObject[property] === 'object') {
+        if (isArray(redactedObject[property])) {
+          redactedObject[property] = redactedObject[property].map(
+            (currentObject) => {
+              return redactAttributes({ options, object: currentObject });
+            }
+          );
+        } else if (
+          isObject(redactedObject[property]) &&
+          !(redactedObject[property] instanceof Big)
+        ) {
           // Recursively call the function on the nested object
           redactedObject[property] = redactAttributes({
             options,

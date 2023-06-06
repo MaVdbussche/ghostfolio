@@ -10,12 +10,13 @@ import { FormBuilder } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UpdateAssetProfileDto } from '@ghostfolio/api/app/admin/update-asset-profile.dto';
 import { AdminService } from '@ghostfolio/client/services/admin.service';
+import { DataService } from '@ghostfolio/client/services/data.service';
 import {
-  EnhancedSymbolProfile,
+  AdminMarketDataDetails,
   UniqueAsset
 } from '@ghostfolio/common/interfaces';
 import { translate } from '@ghostfolio/ui/i18n';
-import { MarketData } from '@prisma/client';
+import { MarketData, SymbolProfile } from '@prisma/client';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -30,15 +31,17 @@ import { AssetProfileDialogParams } from './interfaces/interfaces';
 })
 export class AssetProfileDialog implements OnDestroy, OnInit {
   public assetClass: string;
-  public assetProfile: EnhancedSymbolProfile;
+  public assetProfile: AdminMarketDataDetails['assetProfile'];
   public assetProfileForm = this.formBuilder.group({
     comment: '',
     symbolMapping: ''
   });
   public assetSubClass: string;
+  public benchmarks: Partial<SymbolProfile>[];
   public countries: {
     [code: string]: { name: string; value: number };
   };
+  public isBenchmark = false;
   public marketDataDetails: MarketData[] = [];
   public sectors: {
     [name: string]: { name: string; value: number };
@@ -50,11 +53,14 @@ export class AssetProfileDialog implements OnDestroy, OnInit {
     private adminService: AdminService,
     private changeDetectorRef: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) public data: AssetProfileDialogParams,
+    private dataService: DataService,
     public dialogRef: MatDialogRef<AssetProfileDialog>,
     private formBuilder: FormBuilder
   ) {}
 
   public ngOnInit(): void {
+    this.benchmarks = this.dataService.fetchInfo().benchmarks;
+
     this.initialize();
   }
 
@@ -71,6 +77,9 @@ export class AssetProfileDialog implements OnDestroy, OnInit {
         this.assetClass = translate(this.assetProfile?.assetClass);
         this.assetSubClass = translate(this.assetProfile?.assetSubClass);
         this.countries = {};
+        this.isBenchmark = this.benchmarks.some(({ id }) => {
+          return id === this.assetProfile.id;
+        });
         this.marketDataDetails = marketData;
         this.sectors = {};
 
@@ -125,6 +134,17 @@ export class AssetProfileDialog implements OnDestroy, OnInit {
     if (withRefresh) {
       this.initialize();
     }
+  }
+
+  public onSetBenchmark({ dataSource, symbol }: UniqueAsset) {
+    this.dataService
+      .postBenchmark({ dataSource, symbol })
+      .pipe(takeUntil(this.unsubscribeSubject))
+      .subscribe(() => {
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
+      });
   }
 
   public onSubmit() {

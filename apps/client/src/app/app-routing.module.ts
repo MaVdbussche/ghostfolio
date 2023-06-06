@@ -5,25 +5,49 @@ import { PageTitleStrategy } from '@ghostfolio/client/services/page-title.strate
 import { ModulePreloadService } from './core/module-preload.service';
 
 const routes: Routes = [
-  {
-    path: 'about',
+  ...[
+    'about',
+    /////
+    'a-propos',
+    'informazioni-su',
+    'over',
+    'sobre',
+    'ueber-uns'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/about/about-page.module').then((m) => m.AboutPageModule)
-  },
-  {
-    path: 'about/changelog',
+  })),
+  ...[
+    'about/changelog',
+    /////
+    'a-propos/changelog',
+    'informazioni-su/changelog',
+    'over/changelog',
+    'sobre/changelog',
+    'ueber-uns/changelog'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/about/changelog/changelog-page.module').then(
         (m) => m.ChangelogPageModule
       )
-  },
-  {
-    path: 'about/privacy-policy',
+  })),
+  ...[
+    'about/privacy-policy',
+    /////
+    'a-propos/politique-de-confidentialite',
+    'informazioni-su/informativa-sulla-privacy',
+    'over/privacybeleid',
+    'sobre/politica-de-privacidad',
+    'ueber-uns/datenschutzbestimmungen'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/about/privacy-policy/privacy-policy-page.module').then(
         (m) => m.PrivacyPolicyPageModule
       )
-  },
+  })),
   {
     path: 'account',
     loadChildren: () =>
@@ -48,11 +72,11 @@ const routes: Routes = [
     loadChildren: () =>
       import('./pages/auth/auth-page.module').then((m) => m.AuthPageModule)
   },
-  {
-    path: 'blog',
+  ...['blog'].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/blog/blog-page.module').then((m) => m.BlogPageModule)
-  },
+  })),
   {
     path: 'blog/2021/07/hallo-ghostfolio',
     loadChildren: () =>
@@ -117,33 +141,89 @@ const routes: Routes = [
       ).then((m) => m.TheImportanceOfTrackingYourPersonalFinancesPageModule)
   },
   {
+    path: 'blog/2023/01/ghostfolio-auf-sackgeld-vorgestellt',
+    loadChildren: () =>
+      import(
+        './pages/blog/2023/01/ghostfolio-auf-sackgeld-vorgestellt/ghostfolio-auf-sackgeld-vorgestellt-page.module'
+      ).then((m) => m.GhostfolioAufSackgeldVorgestelltPageModule)
+  },
+  {
+    path: 'blog/2023/02/ghostfolio-meets-umbrel',
+    loadChildren: () =>
+      import(
+        './pages/blog/2023/02/ghostfolio-meets-umbrel/ghostfolio-meets-umbrel-page.module'
+      ).then((m) => m.GhostfolioMeetsUmbrelPageModule)
+  },
+  {
+    path: 'blog/2023/03/ghostfolio-reaches-1000-stars-on-github',
+    loadChildren: () =>
+      import(
+        './pages/blog/2023/03/1000-stars-on-github/1000-stars-on-github-page.module'
+      ).then((m) => m.ThousandStarsOnGitHubPageModule)
+  },
+  {
+    path: 'blog/2023/05/unlock-your-financial-potential-with-ghostfolio',
+    loadChildren: () =>
+      import(
+        './pages/blog/2023/05/unlock-your-financial-potential-with-ghostfolio/unlock-your-financial-potential-with-ghostfolio-page.module'
+      ).then((m) => m.UnlockYourFinancialPotentialWithGhostfolioPageModule)
+  },
+  {
     path: 'demo',
     loadChildren: () =>
       import('./pages/demo/demo-page.module').then((m) => m.DemoPageModule)
   },
-  {
-    path: 'faq',
+  ...[
+    'faq',
+    /////
+    'domande-piu-frequenti',
+    'foire-aux-questions',
+    'haeufig-gestellte-fragen',
+    'preguntas-mas-frecuentes',
+    'vaak-gestelde-vragen'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/faq/faq-page.module').then((m) => m.FaqPageModule)
-  },
-  {
-    path: 'features',
+  })),
+  ...[
+    'features',
+    /////
+    'fonctionnalites',
+    'funcionalidades',
+    'funzionalita',
+    'kenmerken'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/features/features-page.module').then(
         (m) => m.FeaturesPageModule
       )
-  },
+  })),
   {
     path: 'home',
     loadChildren: () =>
       import('./pages/home/home-page.module').then((m) => m.HomePageModule)
   },
-  {
-    path: 'markets',
+  ...[
+    'markets',
+    /////
+    'maerkte',
+    'marches',
+    'markten',
+    'mercados',
+    'mercati'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/markets/markets-page.module').then(
         (m) => m.MarketsPageModule
       )
+  })),
+  {
+    path: 'open',
+    loadChildren: () =>
+      import('./pages/open/open-page.module').then((m) => m.OpenPageModule)
   },
   {
     path: 'p',
@@ -159,27 +239,51 @@ const routes: Routes = [
         (m) => m.PortfolioPageModule
       )
   },
-  {
-    path: 'pricing',
+  ...[
+    'pricing',
+    /////
+    'precios',
+    'preise',
+    'prezzi',
+    'prijzen',
+    'prix'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/pricing/pricing-page.module').then(
         (m) => m.PricingPageModule
       )
-  },
-  {
-    path: 'register',
+  })),
+  ...[
+    'register',
+    /////
+    'enregistrement',
+    'iscrizione',
+    'registratie',
+    'registrierung',
+    'registro'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/register/register-page.module').then(
         (m) => m.RegisterPageModule
       )
-  },
-  {
-    path: 'resources',
+  })),
+  ...[
+    'resources',
+    /////
+    'bronnen',
+    'recursos',
+    'ressourcen',
+    'ressources',
+    'risorse'
+  ].map((path) => ({
+    path,
     loadChildren: () =>
       import('./pages/resources/resources-page.module').then(
         (m) => m.ResourcesPageModule
       )
-  },
+  })),
   {
     path: 'start',
     loadChildren: () =>
@@ -215,9 +319,8 @@ const routes: Routes = [
       // Preload all lazy loaded modules with the attribute preload === true
       {
         anchorScrolling: 'enabled',
-        preloadingStrategy: ModulePreloadService,
+        preloadingStrategy: ModulePreloadService
         // enableTracing: true // <-- debugging purposes only
-        relativeLinkResolution: 'legacy'
       }
     )
   ],

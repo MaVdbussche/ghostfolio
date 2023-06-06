@@ -8,8 +8,9 @@ import { RedactValuesInResponseInterceptor } from '@ghostfolio/api/interceptors/
 import { TransformDataSourceInRequestInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-request.interceptor';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response.interceptor';
 import { ApiService } from '@ghostfolio/api/services/api/api.service';
-import { ConfigurationService } from '@ghostfolio/api/services/configuration.service';
-import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data.service';
+import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
+import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
+import { HEADER_KEY_IMPERSONATION } from '@ghostfolio/common/config';
 import {
   PortfolioDetails,
   PortfolioDividends,
@@ -65,7 +66,7 @@ export class PortfolioController {
   @UseInterceptors(RedactValuesInResponseInterceptor)
   @UseInterceptors(TransformDataSourceInResponseInterceptor)
   public async getDetails(
-    @Headers('impersonation-id') impersonationId: string,
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
     @Query('accounts') filterByAccounts?: string,
     @Query('assetClasses') filterByAssetClasses?: string,
     @Query('range') dateRange: DateRange = 'max',
@@ -90,6 +91,7 @@ export class PortfolioController {
       filteredValueInPercentage,
       hasErrors,
       holdings,
+      platforms,
       summary,
       totalValueInBaseCurrency
     } = await this.portfolioService.getDetails({
@@ -131,12 +133,16 @@ export class PortfolioController {
           portfolioPosition.investment / totalInvestment;
         portfolioPosition.netPerformance = null;
         portfolioPosition.quantity = null;
-        portfolioPosition.value = portfolioPosition.value / totalValue;
+        portfolioPosition.valueInPercentage =
+          portfolioPosition.value / totalValue;
       }
 
-      for (const [name, { current, original }] of Object.entries(accounts)) {
-        accounts[name].current = current / totalValue;
-        accounts[name].original = original / totalInvestment;
+      for (const [name, { valueInBaseCurrency }] of Object.entries(accounts)) {
+        accounts[name].valueInPercentage = valueInBaseCurrency / totalValue;
+      }
+
+      for (const [name, { valueInBaseCurrency }] of Object.entries(platforms)) {
+        platforms[name].valueInPercentage = valueInBaseCurrency / totalValue;
       }
     }
 
@@ -180,6 +186,7 @@ export class PortfolioController {
       filteredValueInPercentage,
       hasError,
       holdings,
+      platforms,
       totalValueInBaseCurrency,
       summary: portfolioSummary
     };
@@ -188,7 +195,7 @@ export class PortfolioController {
   @Get('dividends')
   @UseGuards(AuthGuard('jwt'))
   public async getDividends(
-    @Headers('impersonation-id') impersonationId: string,
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
     @Query('accounts') filterByAccounts?: string,
     @Query('assetClasses') filterByAssetClasses?: string,
     @Query('groupBy') groupBy?: GroupBy,
@@ -238,7 +245,7 @@ export class PortfolioController {
   @Get('investments')
   @UseGuards(AuthGuard('jwt'))
   public async getInvestments(
-    @Headers('impersonation-id') impersonationId: string,
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
     @Query('accounts') filterByAccounts?: string,
     @Query('assetClasses') filterByAssetClasses?: string,
     @Query('groupBy') groupBy?: GroupBy,
@@ -251,11 +258,12 @@ export class PortfolioController {
       filterByTags
     });
 
-    let investments = await this.portfolioService.getInvestments({
+    let { investments, streaks } = await this.portfolioService.getInvestments({
       dateRange,
       filters,
       groupBy,
-      impersonationId
+      impersonationId,
+      savingsRate: this.request.user?.Settings?.settings.savingsRate
     });
 
     if (
@@ -271,6 +279,11 @@ export class PortfolioController {
         date: item.date,
         investment: item.investment / maxInvestment
       }));
+
+      streaks = nullifyValuesInObject(streaks, [
+        'currentStreak',
+        'longestStreak'
+      ]);
     }
 
     if (
@@ -280,9 +293,14 @@ export class PortfolioController {
       investments = investments.map((item) => {
         return nullifyValuesInObject(item, ['investment']);
       });
+
+      streaks = nullifyValuesInObject(streaks, [
+        'currentStreak',
+        'longestStreak'
+      ]);
     }
 
-    return { investments };
+    return { investments, streaks };
   }
 
   @Get('performance')
@@ -290,7 +308,7 @@ export class PortfolioController {
   @UseInterceptors(TransformDataSourceInResponseInterceptor)
   @Version('2')
   public async getPerformanceV2(
-    @Headers('impersonation-id') impersonationId: string,
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
     @Query('accounts') filterByAccounts?: string,
     @Query('assetClasses') filterByAssetClasses?: string,
     @Query('range') dateRange: DateRange = 'max',
@@ -322,7 +340,7 @@ export class PortfolioController {
             totalInvestment: new Big(totalInvestment)
               .div(performanceInformation.performance.totalInvestment)
               .toNumber(),
-            value: new Big(value)
+            valueInPercentage: new Big(value)
               .div(performanceInformation.performance.currentValue)
               .toNumber()
           };
@@ -356,9 +374,10 @@ export class PortfolioController {
 
   @Get('positions')
   @UseGuards(AuthGuard('jwt'))
+  @UseInterceptors(RedactValuesInResponseInterceptor)
   @UseInterceptors(TransformDataSourceInResponseInterceptor)
   public async getPositions(
-    @Headers('impersonation-id') impersonationId: string,
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
     @Query('accounts') filterByAccounts?: string,
     @Query('assetClasses') filterByAssetClasses?: string,
     @Query('range') dateRange: DateRange = 'max',
@@ -370,27 +389,11 @@ export class PortfolioController {
       filterByTags
     });
 
-    const result = await this.portfolioService.getPositions({
+    return this.portfolioService.getPositions({
       dateRange,
       filters,
       impersonationId
     });
-
-    if (
-      impersonationId ||
-      this.userService.isRestrictedView(this.request.user)
-    ) {
-      result.positions = result.positions.map((position) => {
-        return nullifyValuesInObject(position, [
-          'grossPerformance',
-          'investment',
-          'netPerformance',
-          'quantity'
-        ]);
-      });
-    }
-
-    return result;
   }
 
   @Get('public/:accessId')
@@ -441,7 +444,7 @@ export class PortfolioController {
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {
       portfolioPublicDetails.holdings[symbol] = {
-        allocationCurrent: portfolioPosition.value / totalValue,
+        allocationInPercentage: portfolioPosition.value / totalValue,
         countries: hasDetails ? portfolioPosition.countries : [],
         currency: hasDetails ? portfolioPosition.currency : undefined,
         dataSource: portfolioPosition.dataSource,
@@ -452,7 +455,7 @@ export class PortfolioController {
         sectors: hasDetails ? portfolioPosition.sectors : [],
         symbol: portfolioPosition.symbol,
         url: portfolioPosition.url,
-        value: portfolioPosition.value / totalValue
+        valueInPercentage: portfolioPosition.value / totalValue
       };
     }
 
@@ -460,35 +463,22 @@ export class PortfolioController {
   }
 
   @Get('position/:dataSource/:symbol')
+  @UseInterceptors(RedactValuesInResponseInterceptor)
   @UseInterceptors(TransformDataSourceInRequestInterceptor)
   @UseInterceptors(TransformDataSourceInResponseInterceptor)
   @UseGuards(AuthGuard('jwt'))
   public async getPosition(
-    @Headers('impersonation-id') impersonationId: string,
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
     @Param('dataSource') dataSource,
     @Param('symbol') symbol
   ): Promise<PortfolioPositionDetail> {
-    let position = await this.portfolioService.getPosition(
+    const position = await this.portfolioService.getPosition(
       dataSource,
       impersonationId,
       symbol
     );
 
     if (position) {
-      if (
-        impersonationId ||
-        this.userService.isRestrictedView(this.request.user)
-      ) {
-        position = nullifyValuesInObject(position, [
-          'grossPerformance',
-          'investment',
-          'netPerformance',
-          'orders',
-          'quantity',
-          'value'
-        ]);
-      }
-
       return position;
     }
 
@@ -501,7 +491,7 @@ export class PortfolioController {
   @Get('report')
   @UseGuards(AuthGuard('jwt'))
   public async getReport(
-    @Headers('impersonation-id') impersonationId: string
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string
   ): Promise<PortfolioReport> {
     const report = await this.portfolioService.getReport(impersonationId);
 

@@ -12,14 +12,37 @@
       <div class="col-12 d-flex justify-content-center mb-3">
         <gf-value
           size="large"
-          [currency]="user?.settings?.baseCurrency"
+          [isCurrency]="true"
           [locale]="user?.settings?.locale"
+          [unit]="user?.settings?.baseCurrency"
           [value]="valueInBaseCurrency"
         ></gf-value>
       </div>
     </div>
 
     <div class="row">
+      <div class="col-6 mb-3">
+        <gf-value
+          i18n
+          size="medium"
+          [isCurrency]="true"
+          [locale]="user?.settings?.locale"
+          [unit]="currency"
+          [value]="balance"
+          >Cash Balance</gf-value
+        >
+      </div>
+      <div class="col-6 mb-3">
+        <gf-value
+          i18n
+          size="medium"
+          [isCurrency]="true"
+          [locale]="user?.settings?.locale"
+          [unit]="currency"
+          [value]="equity"
+          >Equity</gf-value
+        >
+      </div>
       <div class="col-6 mb-3">
         <gf-value i18n size="medium" [value]="accountType"
           >Account Type</gf-value
@@ -40,7 +63,6 @@
           [hasPermissionToCreateActivity]="false"
           [hasPermissionToExportActivities]="true"
           [hasPermissionToFilter]="false"
-          [hasPermissionToImportActivities]="false"
           [hasPermissionToOpenDetails]="false"
           [locale]="user?.settings?.locale"
           [showActions]="false"

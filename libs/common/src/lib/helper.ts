@@ -1,5 +1,6 @@
 import * as currencies from '@dinero.js/currencies';
 import { DataSource } from '@prisma/client';
+import Big from 'big.js';
 import { getDate, getMonth, getYear, parse, subDays } from 'date-fns';
 import { de, es, fr, it, nl, pt } from 'date-fns/locale';
 
@@ -14,7 +15,11 @@ export function capitalize(aString: string) {
 }
 
 export function decodeDataSource(encodedDataSource: string) {
-  return Buffer.from(encodedDataSource, 'hex').toString();
+  if (encodedDataSource) {
+    return Buffer.from(encodedDataSource, 'hex').toString();
+  }
+
+  return undefined;
 }
 
 export function downloadAsFile({
@@ -117,6 +122,18 @@ export function getDateWithTimeFormatString(aLocale?: string) {
   return `${getDateFormatString(aLocale)}, HH:mm:ss`;
 }
 
+export function getEmojiFlag(aCountryCode: string) {
+  if (!aCountryCode) {
+    return aCountryCode;
+  }
+
+  return aCountryCode
+    .toUpperCase()
+    .replace(/./g, (character) =>
+      String.fromCodePoint(127397 + character.charCodeAt(0))
+    );
+}
+
 export function getLocale() {
   return navigator.languages?.length
     ? navigator.languages[0]
@@ -137,6 +154,21 @@ export function getNumberFormatGroup(aLocale?: string) {
   return formatObject.find((object) => {
     return object.type === 'group';
   }).value;
+}
+
+export function getStartOfUtcDate(aDate: Date) {
+  const date = new Date(aDate);
+  date.setUTCHours(0, 0, 0, 0);
+
+  return date;
+}
+
+export function getSum(aArray: Big[]) {
+  if (aArray?.length > 0) {
+    return aArray.reduce((a, b) => a.plus(b), new Big(0));
+  }
+
+  return new Big(0);
 }
 
 export function getTextColor(aColorScheme: ColorScheme) {
@@ -233,6 +265,8 @@ export function resolveMarketCondition(
 }
 
 export const DATE_FORMAT = 'yyyy-MM-dd';
+export const DATE_FORMAT_MONTHLY = 'MMMM yyyy';
+export const DATE_FORMAT_YEARLY = 'yyyy';
 
 export function parseDate(date: string) {
   return parse(date, DATE_FORMAT, new Date());
@@ -240,8 +274,4 @@ export function parseDate(date: string) {
 
 export function prettifySymbol(aSymbol: string): string {
   return aSymbol?.replace(ghostfolioScraperApiSymbolPrefix, '');
-}
-
-export function transformTickToAbbreviation(value: number) {
-  return value < 1000000 ? `${value / 1000}K` : `${value / 1000000}M`;
 }

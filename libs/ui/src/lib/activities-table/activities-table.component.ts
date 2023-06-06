@@ -6,6 +6,7 @@ import {
   Input,
   OnChanges,
   OnDestroy,
+  OnInit,
   Output,
   ViewChild
 } from '@angular/core';
@@ -18,6 +19,7 @@ import { DEFAULT_PAGE_SIZE } from '@ghostfolio/common/config';
 import { getDateFormatString } from '@ghostfolio/common/helper';
 import { Filter, UniqueAsset } from '@ghostfolio/common/interfaces';
 import { OrderWithAccount } from '@ghostfolio/common/types';
+import { translate } from '@ghostfolio/ui/i18n';
 import Big from 'big.js';
 import { isUUID } from 'class-validator';
 import { endOfToday, format, isAfter } from 'date-fns';
@@ -30,14 +32,13 @@ import { Subject, Subscription, distinctUntilChanged, takeUntil } from 'rxjs';
   styleUrls: ['./activities-table.component.scss'],
   templateUrl: './activities-table.component.html'
 })
-export class ActivitiesTableComponent implements OnChanges, OnDestroy {
+export class ActivitiesTableComponent implements OnChanges, OnDestroy, OnInit {
   @Input() activities: Activity[];
   @Input() baseCurrency: string;
   @Input() deviceType: string;
   @Input() hasPermissionToCreateActivity: boolean;
   @Input() hasPermissionToExportActivities: boolean;
   @Input() hasPermissionToFilter = true;
-  @Input() hasPermissionToImportActivities: boolean;
   @Input() hasPermissionToOpenDetails = true;
   @Input() locale: string;
   @Input() pageSize = DEFAULT_PAGE_SIZE;
@@ -49,6 +50,7 @@ export class ActivitiesTableComponent implements OnChanges, OnDestroy {
   @Output() activityDeleted = new EventEmitter<string>();
   @Output() activityToClone = new EventEmitter<OrderWithAccount>();
   @Output() activityToUpdate = new EventEmitter<OrderWithAccount>();
+  @Output() deleteAllActivities = new EventEmitter<void>();
   @Output() export = new EventEmitter<string[]>();
   @Output() exportDrafts = new EventEmitter<string[]>();
   @Output() import = new EventEmitter<void>();
@@ -65,6 +67,7 @@ export class ActivitiesTableComponent implements OnChanges, OnDestroy {
   public endOfToday = endOfToday();
   public filters$ = new Subject<Filter[]>();
   public hasDrafts = false;
+  public hasErrors = false;
   public isAfter = isAfter;
   public isLoading = true;
   public isUUID = isUUID;
@@ -87,6 +90,17 @@ export class ActivitiesTableComponent implements OnChanges, OnDestroy {
       });
   }
 
+  public ngOnInit() {
+    if (this.showCheckbox) {
+      this.toggleAllRows();
+      this.selectedRows.changed
+        .pipe(takeUntil(this.unsubscribeSubject))
+        .subscribe((selectedRows) => {
+          this.selectedActivities.emit(selectedRows.source.selected);
+        });
+    }
+  }
+
   public areAllRowsSelected() {
     const numSelectedRows = this.selectedRows.selected.length;
     const numTotalRows = this.dataSource.data.length;
@@ -96,6 +110,7 @@ export class ActivitiesTableComponent implements OnChanges, OnDestroy {
   public ngOnChanges() {
     this.displayedColumns = [
       'select',
+      'importStatus',
       'count',
       'date',
       'type',
@@ -117,7 +132,7 @@ export class ActivitiesTableComponent implements OnChanges, OnDestroy {
       });
     } else {
       this.displayedColumns = this.displayedColumns.filter((column) => {
-        return column !== 'select';
+        return column !== 'importStatus' && column !== 'select';
       });
     }
 
@@ -130,40 +145,49 @@ export class ActivitiesTableComponent implements OnChanges, OnDestroy {
     this.defaultDateFormat = getDateFormatString(this.locale);
 
     if (this.activities) {
+      this.activities = this.activities.map((activity) => {
+        return {
+          ...activity,
+          error: activity.error
+            ? {
+                ...activity.error,
+                message: translate(
+                  `IMPORT_ACTIVITY_ERROR_${activity.error.code}`
+                )
+              }
+            : undefined
+        };
+      });
+
       this.allFilters = this.getSearchableFieldValues(this.activities);
 
       this.dataSource = new MatTableDataSource(this.activities);
       this.dataSource.filterPredicate = (data, filter) => {
-        const dataString = this.getFilterableValues(data)
-          .map((currentFilter) => {
-            return currentFilter.label;
-          })
-          .join(' ')
-          .toLowerCase();
+        const filterableLabels = this.getFilterableValues(data).map(
+          ({ label }) => {
+            return label.toLowerCase();
+          }
+        );
 
-        let contains = true;
+        let includes = true;
         for (const singleFilter of filter.split(this.SEARCH_STRING_SEPARATOR)) {
-          contains =
-            contains && dataString.includes(singleFilter.trim().toLowerCase());
+          includes =
+            includes &&
+            filterableLabels.includes(singleFilter.trim().toLowerCase());
         }
-        return contains;
+        return includes;
       };
       this.dataSource.paginator = this.paginator;
       this.dataSource.sort = this.sort;
       this.dataSource.sortingDataAccessor = get;
 
       this.updateFilters();
-    }
-  }
 
-  ngOnInit() {
-    if (this.showCheckbox) {
-      this.toggleAllRows();
-      this.selectedRows.changed
-        .pipe(takeUntil(this.unsubscribeSubject))
-        .subscribe((selectedRows) => {
-          this.selectedActivities.emit(selectedRows.source.selected);
-        });
+      this.hasErrors = this.activities.some(({ error }) => {
+        return !!error;
+      });
+    } else {
+      this.hasErrors = false;
     }
   }
 
@@ -176,7 +200,9 @@ export class ActivitiesTableComponent implements OnChanges, OnDestroy {
 
   public onClickActivity(activity: Activity) {
     if (this.showCheckbox) {
-      this.selectedRows.toggle(activity);
+      if (!activity.error) {
+        this.selectedRows.toggle(activity);
+      }
     } else if (
       this.hasPermissionToOpenDetails &&
       !activity.isDraft &&
@@ -229,6 +255,10 @@ export class ActivitiesTableComponent implements OnChanges, OnDestroy {
           return activity.id;
         })
     );
+  }
+
+  public onDeleteAllActivities() {
+    this.deleteAllActivities.emit();
   }
 
   public onImport() {

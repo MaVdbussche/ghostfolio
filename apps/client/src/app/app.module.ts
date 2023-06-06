@@ -14,7 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ServiceWorkerModule } from '@angular/service-worker';
-import { MaterialCssVarsModule } from 'angular-material-css-vars';
+import { GfLogoModule } from '@ghostfolio/ui/logo';
 import { MarkdownModule } from 'ngx-markdown';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { NgxStripeModule, STRIPE_PUBLISHABLE_KEY } from 'ngx-stripe';
@@ -25,6 +25,7 @@ import { DateFormats } from './adapter/date-formats';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { GfHeaderModule } from './components/header/header.module';
+import { GfSubscriptionInterstitialDialogModule } from './components/subscription-interstitial-dialog/subscription-interstitial-dialog.module';
 import { authInterceptorProviders } from './core/auth.interceptor';
 import { httpResponseInterceptorProviders } from './core/http-response.interceptor';
 import { LanguageService } from './core/language.service';
@@ -40,15 +41,12 @@ export function NgxStripeFactory(): string {
     BrowserAnimationsModule,
     BrowserModule,
     GfHeaderModule,
+    GfLogoModule,
+    GfSubscriptionInterstitialDialogModule,
     HttpClientModule,
     MarkdownModule.forRoot(),
     MatAutocompleteModule,
     MatChipsModule,
-    MaterialCssVarsModule.forRoot({
-      darkThemeClass: 'is-dark-theme',
-      isAutoContrast: true,
-      lightThemeClass: 'is-light-theme'
-    }),
     MatNativeDateModule,
     MatSnackBarModule,
     MatTooltipModule,

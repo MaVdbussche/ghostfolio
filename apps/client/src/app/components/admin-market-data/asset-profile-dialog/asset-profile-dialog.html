@@ -27,7 +27,7 @@
         [disabled]="assetProfileForm.dirty"
         (click)="onGatherSymbol({dataSource: data.dataSource, symbol: data.symbol})"
       >
-        <ng-container i18n>Gather Data</ng-container>
+        <ng-container i18n>Gather Historical Data</ng-container>
       </button>
       <button
         mat-menu-item
@@ -36,6 +36,13 @@
         (click)="onGatherProfileDataBySymbol({dataSource: data.dataSource, symbol: data.symbol})"
       >
         <ng-container i18n>Gather Profile Data</ng-container>
+      </button>
+      <button
+        mat-menu-item
+        [disabled]="isBenchmark"
+        (click)="onSetBenchmark({dataSource: data.dataSource, symbol: data.symbol})"
+      >
+        <ng-container i18n>Set as Benchmark</ng-container>
       </button>
     </mat-menu>
   </div>

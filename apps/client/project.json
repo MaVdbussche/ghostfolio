@@ -65,7 +65,10 @@
             "output": "./../assets/"
           }
         ],
-        "styles": ["apps/client/src/styles.scss"],
+        "styles": [
+          "apps/client/src/styles/theme.scss",
+          "apps/client/src/styles.scss"
+        ],
         "scripts": ["node_modules/marked/marked.min.js"],
         "vendorChunk": true,
         "extractLicenses": false,
@@ -192,7 +195,7 @@
       }
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "options": {
         "jestConfig": "apps/client/jest.config.ts",
         "passWithNoTests": true

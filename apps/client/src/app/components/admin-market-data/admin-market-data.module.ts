@@ -7,7 +7,7 @@ import { MatTableModule } from '@angular/material/table';
 import { GfActivitiesFilterModule } from '@ghostfolio/ui/activities-filter/activities-filter.module';
 
 import { AdminMarketDataComponent } from './admin-market-data.component';
-import { GfAssetProfileDialogModule } from './asset-profile-dialog/assset-profile-dialog.module';
+import { GfAssetProfileDialogModule } from './asset-profile-dialog/asset-profile-dialog.module';
 
 @NgModule({
   declarations: [AdminMarketDataComponent],

@@ -86,7 +86,7 @@ describe('PortfolioCalculator', () => {
         netPerformanceInPercentage: 13.100263852242744,
         netPerformance: 19.86,
         totalInvestment: 0,
-        value: 19.86
+        value: 0
       });
 
       expect(currentPositions).toEqual({
@@ -102,6 +102,7 @@ describe('PortfolioCalculator', () => {
             averagePrice: new Big('0'),
             currency: 'CHF',
             dataSource: 'YAHOO',
+            fee: new Big('0'),
             firstBuyDate: '2022-03-07',
             grossPerformance: new Big('19.86'),
             grossPerformancePercentage: new Big('0.13100263852242744063'),

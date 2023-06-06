@@ -41,7 +41,7 @@ import { AccountWithValue, DateRange, GroupBy } from '@ghostfolio/common/types';
 import { translate } from '@ghostfolio/ui/i18n';
 import { DataSource, Order as OrderModel } from '@prisma/client';
 import { format, parseISO } from 'date-fns';
-import { cloneDeep, groupBy } from 'lodash';
+import { cloneDeep, groupBy, isNumber } from 'lodash';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -144,6 +144,10 @@ export class DataService {
 
   public deleteAccount(aId: string) {
     return this.http.delete<any>(`/api/v1/account/${aId}`);
+  }
+
+  public deleteAllOrders() {
+    return this.http.delete<any>(`/api/v1/order/`);
   }
 
   public deleteOrder(aId: string) {
@@ -299,6 +303,12 @@ export class DataService {
               ].dateOfFirstActivity
                 ? parseISO(response.holdings[symbol].dateOfFirstActivity)
                 : undefined;
+
+              response.holdings[symbol].value = isNumber(
+                response.holdings[symbol].value
+              )
+                ? response.holdings[symbol].value
+                : response.holdings[symbol].valueInPercentage;
             }
           }
 
@@ -333,9 +343,23 @@ export class DataService {
   }
 
   public fetchPortfolioPublic(aId: string) {
-    return this.http.get<PortfolioPublicDetails>(
-      `/api/v1/portfolio/public/${aId}`
-    );
+    return this.http
+      .get<PortfolioPublicDetails>(`/api/v1/portfolio/public/${aId}`)
+      .pipe(
+        map((response) => {
+          if (response.holdings) {
+            for (const symbol of Object.keys(response.holdings)) {
+              response.holdings[symbol].value = isNumber(
+                response.holdings[symbol].value
+              )
+                ? response.holdings[symbol].value
+                : response.holdings[symbol].valueInPercentage;
+            }
+          }
+
+          return response;
+        })
+      );
   }
 
   public fetchPortfolioReport() {
@@ -368,9 +392,9 @@ export class DataService {
   }
 
   public loginAnonymous(accessToken: string) {
-    return this.http.get<OAuthResponse>(
-      `/api/v1/auth/anonymous/${accessToken}`
-    );
+    return this.http.post<OAuthResponse>(`/api/v1/auth/anonymous`, {
+      accessToken
+    });
   }
 
   public postAccess(aAccess: CreateAccessDto) {
@@ -379,6 +403,10 @@ export class DataService {
 
   public postAccount(aAccount: CreateAccountDto) {
     return this.http.post<OrderModel>(`/api/v1/account`, aAccount);
+  }
+
+  public postBenchmark(benchmark: UniqueAsset) {
+    return this.http.post(`/api/v1/benchmark`, benchmark);
   }
 
   public postOrder(aOrder: CreateOrderDto) {
